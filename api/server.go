@@ -5,9 +5,6 @@ import (
 	"github.com/DanielcoderX/gofel/pkg/config"
 	"log"
 	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
 
 	"github.com/gorilla/websocket"
 )
