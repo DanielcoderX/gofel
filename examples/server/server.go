@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"log"
 
-	"github.com/gorilla/websocket"
-	"github.com/DanielcoderX/gofel/pkg/config"
 	"github.com/DanielcoderX/gofel/api"
+	"github.com/DanielcoderX/gofel/pkg/config"
+	"github.com/gorilla/websocket"
 )
 
 func main() {
@@ -19,12 +19,18 @@ func main() {
 
 	// Load configuration with override values from 'myconfig'
 	// This step allows customization of server settings.
-	cfg := config.LoadConfig(myconfig)
+	cfg, err := config.LoadConfig(myconfig)
+	if err != nil {
+		log.Fatalf("Failed to load configuration: %v", err)
+	}
+
+	if !config.IsConfigValid(*cfg) {
+		log.Fatalf("Invalid configuration: %+v", *cfg)
+	}
 
 	// Create a new RPC server using the specified configuration
 	// This sets up the server with custom settings provided in cfg.
 	server := api.NewServer(cfg)
-	
 
 	// Register 'echo' function that sends back received messages
 	// This function is a basic example of an RPC function handling messages.

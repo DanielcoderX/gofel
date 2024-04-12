@@ -1,3 +1,4 @@
+// Package rpc implements the WebSocket RPC server for gofel.
 package rpc
 
 import (
@@ -8,6 +9,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+// upgrader is the WebSocket upgrader with some custom settings.
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
@@ -16,7 +18,11 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-// HandleWebSocket handles incoming WebSocket connections
+// HandleWebSocket handles incoming WebSocket connections.
+//
+// It upgrades the HTTP connection to the WebSocket protocol,
+// reads JSON-RPC requests from the client, unmarshals the requests,
+// calls the corresponding function, and sends the response back to the client.
 func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -53,3 +59,4 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 }
+

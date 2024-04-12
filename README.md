@@ -1,103 +1,94 @@
-# gofel
+# Gofel
 
-**Gofel** is a highly efficient, lightweight RPC (Remote Procedure Call) server framework written in Go. It is designed to simplify the process of setting up real-time communication servers with a focus on flexibility and performance. Leveraging the power of Gorilla WebSocket, gofel offers a robust solution for developers aiming to build scalable WebSocket applications.
+**Gofel** is a high-performance, lightweight RPC (Remote Procedure Call) framework crafted in Go, aimed at streamlining the development of real-time communication servers. By harnessing the capabilities of the Gorilla WebSocket library, **Gofel** empowers developers to create scalable, efficient WebSocket applications with ease.
 
 ## Features
 
-- **Easy Setup**: Get your server up and running with minimal configuration.
-- **Customizable Configurations**: Tailor the server to meet your specific needs through simple yet powerful configuration options.
-- **WebSocket Integration**: Utilizes the well-known Gorilla WebSocket library for dependable and high-performance WebSocket connections.
-- **Concurrent Processing**: Built to handle multiple requests concurrently, maximizing the efficiency of your real-time communications.
-- **Lightweight Framework**: Focus on what's important - your application's functionality, not the boilerplate code.
+- **Easy Setup**: Quickly launch your server with minimal configuration.
+- **Customizable Configurations**: Adapt the server settings to perfectly fit your application requirements.
+- **WebSocket Integration**: Built on the reliable and high-performance Gorilla WebSocket library.
+- **Concurrent Processing**: Designed for handling multiple requests simultaneously, enhancing real-time communication efficiency.
+- **Lightweight Framework**: Focus more on your application's features and less on managing boilerplate code.
 
 ## Getting Started
 
-To get started with gofel, follow these simple steps:
+Embark on your Gofel journey with these simple steps:
 
 ### Prerequisites
 
-Ensure you have Go installed on your machine (Go 1.15 or later is recommended). You can download it from [Go Downloads](https://golang.org/dl/).
+Make sure you have Go installed (version 1.15 or newer). Download it from [Go Downloads](https://golang.org/dl/).
 
 ### Installation
 
-To use gofel in your project, simply import it:
+Incorporate Gofel into your project by adding the following import:
 
 ```go
 import "github.com/DanielcoderX/gofel"
 ```
 
-### Running the Server
+### Function Registration and Message Handling
 
-Create a file named `example.go` with the following content to run the server:
+When setting up your server with Gofel, you'll typically register functions that can handle incoming JSON requests in the following format:
 
-```go
-package main
-
-import (
-	"encoding/json"
-	"log"
-
-	"github.com/gorilla/websocket"
-	"github.com/DanielcoderX/gofel/pkg/config"
-	"github.com/DanielcoderX/gofel/api"
-)
-
-func main() {
-	// Define custom configuration for the server
-	// This is where you can set paths and ports differently from defaults.
-	myconfig := config.Config{
-		Path: "/here", // Specify the path where the server should run
-		Port: "8088",  // Specify the port on which the server will listen
-	}
-
-	// Load configuration with override values from 'myconfig'
-	// This step allows customization of server settings.
-	cfg := config.LoadConfig(myconfig)
-
-	// Create a new RPC server using the specified configuration
-	// This sets up the server with custom settings provided in cfg.
-	server := api.NewServer(cfg)
-	
-
-	// Register 'echo' function that sends back received messages
-	// This function is a basic example of an RPC function handling messages.
-	server.RegisterFunction("echo", func(conn *websocket.Conn, data interface{}) error {
-		// Marshal the incoming data into JSON format.
-		encodedData, err := json.Marshal(data)
-		if err != nil {
-			log.Printf("Failed to encode data: %s", err)
-			return err
-		}
-
-		// Send the JSON back to the client as a text message.
-		err = conn.WriteMessage(websocket.TextMessage, encodedData)
-		if err != nil {
-			log.Printf("Failed to send message: %s", err)
-			return err
-		}
-
-		return nil
-	})
-
-	// Start the server and listen for incoming connections
-	// Any failure in starting the server will be logged as a fatal error.
-	if err := server.Start(); err != nil {
-		log.Fatalf("Failed to start server: %v", err)
-	}
+```json
+{
+    "function": "echo",
+    "data": "userdatatofunction"
 }
 ```
 
-## Contribution
+Each registered function must be capable of parsing this structure to perform the required action. Here's an example of how to register such a function:
 
-Contributions are what make the open-source community such a powerful platform for learning, inspiring, and creating. Any contributions you make are **greatly appreciated**.
+```go
+server.RegisterFunction("echo", func(conn *websocket.Conn, data interface{}) error {
+    var request struct {
+        Function string `json:"function"`
+        Data     string `json:"data"`
+    }
+
+    if err := json.Unmarshal(data.([]byte), &request); err != nil {
+        log.Printf("Error parsing request: %s", err)
+        return err
+    }
+
+    // Process the request based on 'Function' and 'Data'
+    response, err := json.Marshal(map[string]interface{}{
+        "result": "Received: " + request.Data,
+    })
+    if err != nil {
+        log.Printf("Failed to encode response: %s", err)
+        return err
+    }
+
+    err = conn.WriteMessage(websocket.TextMessage, response)
+    if err != nil {
+        log.Printf("Failed to send message: %s", err)
+        return err
+    }
+
+    return nil
+})
+```
+
+### Running the Server
+
+To launch a basic server, create a `server.go` and populate it with the code of [server.go](examples/server/server.go). This example will guide you through setting up the server configuration, registering your custom function, and starting the server.
+
+For more detailed examples, please refer to the `examples` folder:
+- [Client Example](examples/client/client.go)
+- [Server Example](examples/server/server.go)
+
+## Contributing
+
+We warmly welcome contributions from everyone. Your suggestions, code contributions, and feedback enhance the project for everyone. Engage with us and help make **Gofel** even better!
 
 ## License
 
-This project is licensed under the BSD-3-Clause License - see the [LICENSE](LICENSE) file for details.
+**Gofel** is made available under the GNU GENERAL PUBLIC LICENSE. For more details, see the [LICENSE](LICENSE) file.
 
 ## Acknowledgments
 
-- Gorilla WebSocket library
-- All contributors and supporters of the gofel project
+- Thanks to the Gorilla WebSocket library.
+- Gratitude to all contributors and the supportive community around the Gofel project.
 
-We hope you find this framework useful. Happy coding!
+We hope **Gofel** helps you build amazing applications. Happy coding!
