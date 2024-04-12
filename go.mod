@@ -1,4 +1,4 @@
-module gofel
+module github.com/DanielcoderX/gofel
 
 go 1.22.1
 

@@ -5,8 +5,8 @@ import (
 	"log"
 
 	"github.com/gorilla/websocket"
-	"gofel/pkg/config"
-	"gofel/api"
+	"github.com/DanielcoderX/gofel/pkg/config"
+	"github.com/DanielcoderX/gofel/api"
 )
 
 func main() {

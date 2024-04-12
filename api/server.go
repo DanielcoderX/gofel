@@ -1,8 +1,8 @@
 package api
 
 import (
-	"gofel/internal/rpc"
-	"gofel/pkg/config"
+	"github.com/DanielcoderX/gofel/internal/rpc"
+	"github.com/DanielcoderX/gofel/pkg/config"
 	"log"
 	"net/http"
 	"os"
