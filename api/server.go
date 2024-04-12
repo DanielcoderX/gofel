@@ -33,21 +33,10 @@ func (s *Server) Start() error {
 
 	s.httpServer = &http.Server{Addr: ":" + s.config.Port}
 
-	// Start the HTTP server in a separate goroutine
-	go func() {
-		if err := s.httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("Failed to start server: %v", err)
-		}
-	}()
-
-	// Listen for interrupt or termination signals to gracefully stop the server
-	signalChan := make(chan os.Signal, 1)
-	signal.Notify(signalChan, os.Interrupt, syscall.SIGTERM)
-
-	// Block until a signal is received
-	<-signalChan
-
-	return s.Stop()
+	if err := s.httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		log.Fatalf("Failed to start server: %v", err)
+	}
+	return nil
 }
 
 func (s *Server) Stop() error {

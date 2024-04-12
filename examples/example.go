@@ -50,5 +50,6 @@ func main() {
 	// Any failure in starting the server will be logged as a fatal error.
 	if err := server.Start(); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
+		server.Stop()
 	}
 }
