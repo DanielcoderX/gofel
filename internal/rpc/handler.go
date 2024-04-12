@@ -16,8 +16,8 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-// handleWebSocket handles incoming WebSocket connections
-func handleWebSocket(w http.ResponseWriter, r *http.Request) {
+// HandleWebSocket handles incoming WebSocket connections
+func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return

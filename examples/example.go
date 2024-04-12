@@ -5,8 +5,8 @@ import (
 	"log"
 
 	"github.com/gorilla/websocket"
-	"github.com/DanielcoderX/gofel" // Import internal package for RPC handling
-	"github.com/DanielcoderX/gofel"   // Import package for configuration management
+	"gofel/pkg/config"
+	"gofel/api"
 )
 
 func main() {
@@ -23,14 +23,12 @@ func main() {
 
 	// Create a new RPC server using the specified configuration
 	// This sets up the server with custom settings provided in cfg.
-	server, err := rpc.NewServer(cfg)
-	if err != nil {
-		log.Fatalf("Failed to create server: %v", err)
-	}
+	server := api.NewServer(cfg)
+	
 
 	// Register 'echo' function that sends back received messages
 	// This function is a basic example of an RPC function handling messages.
-	rpc.RegisterFunction("echo", func(conn *websocket.Conn, data interface{}) error {
+	server.RegisterFunction("echo", func(conn *websocket.Conn, data interface{}) error {
 		// Marshal the incoming data into JSON format.
 		encodedData, err := json.Marshal(data)
 		if err != nil {
