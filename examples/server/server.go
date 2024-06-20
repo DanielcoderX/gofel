@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 
@@ -15,6 +16,7 @@ func main() {
 	myconfig := config.Config{
 		Path: "/here", // Specify the path where the server should run
 		Port: "8088",  // Specify the port on which the server will listen
+		Verbose: true,  // Enable verbose logging
 	}
 
 	// Load configuration with override values from 'myconfig'
@@ -34,27 +36,26 @@ func main() {
 
 	// Register 'echo' function that sends back received messages
 	// This function is a basic example of an RPC function handling messages.
-	server.RegisterFunction("echo", func(conn *websocket.Conn, data interface{}) error {
+	server.On("echo", func(conn *websocket.Conn, data interface{}) {
 		// Marshal the incoming data into JSON format.
 		encodedData, err := json.Marshal(data)
 		if err != nil {
 			log.Printf("Failed to encode data: %s", err)
-			return err
+			return
 		}
 
 		// Send the JSON back to the client as a text message.
 		err = conn.WriteMessage(websocket.TextMessage, encodedData)
 		if err != nil {
 			log.Printf("Failed to send message: %s", err)
-			return err
+			return
 		}
-
-		return nil
 	})
 
 	// Start the server and listen for incoming connections
 	// Any failure in starting the server will be logged as a fatal error.
-	if err := server.Start(); err != nil {
+	ctx := context.Background() // Use background context as an example
+	if err := server.Start(ctx); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
 		server.Stop()
 	}

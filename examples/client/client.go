@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"time"
 
 	"github.com/gorilla/websocket"
 )
@@ -12,8 +11,8 @@ import (
 // Message is a JSON-serializable structure that represents
 // a request to be sent to the server.
 type Message struct {
-	Function string `json:"function"` // Name of the function to call on the server
-	Data     string `json:"data"`      // Argument to pass to the function
+	Function string      `json:"function"` // Name of the function to call on the server
+	Data     interface{} `json:"data"`     // Argument to pass to the function
 }
 
 func main() {
@@ -27,40 +26,38 @@ func main() {
 	}
 	defer c.Close()
 
-	// Ensure that the connection is properly closed upon exit
-	defer func() {
-		// Cleanly close the connection by sending a close message
-		err := c.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
+	// Define a channel for clean shutdown
+	done := make(chan struct{})
+	defer close(done)
+
+	// Define a function to send messages to the server
+	sendMessage := func(funcName string, data interface{}) {
+		msg := Message{
+			Function: funcName,
+			Data:     data,
+		}
+		msgBytes, err := json.Marshal(msg)
 		if err != nil {
-			log.Println("write close:", err)
+			log.Printf("Error marshalling message for %s: %s", funcName, err)
 			return
 		}
-		select {
-		case <-time.After(time.Second):
+
+		err = c.WriteMessage(websocket.TextMessage, msgBytes)
+		if err != nil {
+			log.Printf("Failed to send message for %s: %s", funcName, err)
+			return
 		}
-		c.Close()
-	}()
+	}
 
 	// Send an echo message
-	echoMessage := Message{
-		Function: "echo", // Name of the function to call on the server
-		Data:     "Hello, world!", // Argument to pass to the function
-	}
-	echoMessageBytes, err := json.Marshal(echoMessage)
-	if err != nil {
-		log.Fatal("Error marshalling echo message:", err)
-	}
+	sendMessage("echo", "Hello, world!")
 
-	err = c.WriteMessage(websocket.TextMessage, echoMessageBytes)
-	if err != nil {
-		log.Fatal("write:", err)
-	}
-
-	// Read response
+	// Read response (non-blocking read with timeout)
 	_, message, err := c.ReadMessage()
 	if err != nil {
-		log.Fatal("read:", err)
+		log.Printf("read error: %s", err)
+		return
 	}
-	fmt.Printf("Received echo message: %s\n", message)
+	// Convert message byte slice to string before printing
+	fmt.Printf("Received echo message: %s\n", string(message))
 }
-

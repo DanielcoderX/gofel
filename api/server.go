@@ -1,16 +1,18 @@
 package api
 
 import (
-	"github.com/DanielcoderX/gofel/internal/rpc"
-	"github.com/DanielcoderX/gofel/pkg/config"
-	"log"
+	"context"
 	"net/http"
+
+	"github.com/DanielcoderX/gofel/internal/rpc"
+	"github.com/DanielcoderX/gofel/internal/utils"
+	"github.com/DanielcoderX/gofel/pkg/config"
 
 	"github.com/gorilla/websocket"
 )
 
 type Server struct {
-	config *config.Config
+	config     *config.Config
 	httpServer *http.Server // Store a reference to the HTTP server
 }
 
@@ -20,30 +22,35 @@ func NewServer(cfg *config.Config) *Server {
 	}
 }
 
-func (s *Server) RegisterFunction(name string, function func(*websocket.Conn, interface{}) error) {
-	rpc.RegisterFunction(name, function)
+func (s *Server) On(name string, callback func(*websocket.Conn, interface{})) {
+	rpc.On(name, callback)
 }
 
-func (s *Server) Start() error {
-	http.HandleFunc(s.config.Path, rpc.HandleWebSocket)
-	log.Printf("RPC starting on %s...", s.config.Port)
+// Start starts the server and listens for incoming connections.
+func (s *Server) Start(ctx context.Context) error {
+	http.HandleFunc(s.config.Path, func(w http.ResponseWriter, r *http.Request) {
+		rpc.HandleWebSocket(ctx, w, r, s.config.Verbose)
+	})
+
+	utils.LogVerbose(s.config.Verbose, "RPC starting on %s...", s.config.Port)
 
 	s.httpServer = &http.Server{Addr: ":" + s.config.Port}
 
 	if err := s.httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-		log.Fatalf("Failed to start server: %v", err)
+		return err
 	}
 	return nil
 }
 
+// Stop gracefully shuts down the server.
 func (s *Server) Stop() error {
-	log.Println("Shutting down server gracefully...")
+	utils.LogVerbose(s.config.Verbose, "Shutting down server gracefully...")
 
 	// Shut down the HTTP server gracefully
-	if err := s.httpServer.Shutdown(nil); err != nil {
+	if err := s.httpServer.Shutdown(context.TODO()); err != nil {
 		return err
 	}
 
-	log.Println("Server shut down gracefully.")
+	utils.LogVerbose(s.config.Verbose, "Server shut down gracefully.")
 	return nil
 }

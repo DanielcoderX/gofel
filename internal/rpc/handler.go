@@ -2,10 +2,12 @@
 package rpc
 
 import (
+	"context"
 	"encoding/json"
-	"log"
 	"net/http"
+	"strings"
 
+	"github.com/DanielcoderX/gofel/internal/utils"
 	"github.com/gorilla/websocket"
 )
 
@@ -23,7 +25,7 @@ var upgrader = websocket.Upgrader{
 // It upgrades the HTTP connection to the WebSocket protocol,
 // reads JSON-RPC requests from the client, unmarshals the requests,
 // calls the corresponding function, and sends the response back to the client.
-func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
+func HandleWebSocket(ctx context.Context, w http.ResponseWriter, r *http.Request, verbose bool) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -31,32 +33,43 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Printf("Failed to upgrade websocket: %s", err)
+		utils.LogVerbose(verbose, "Failed to upgrade websocket: %s", err)
 		return
 	}
 	defer conn.Close()
 
+	utils.LogVerbose(verbose, "WebSocket connection established")
+
 	for {
-		_, msg, err := conn.ReadMessage()
-		if err != nil {
-			if websocket.IsCloseError(err, websocket.CloseNormalClosure) {
-				log.Println("WebSocket closed normally")
-			} else {
-				log.Printf("Read error: %v", err)
+		select {
+		case <-ctx.Done():
+			utils.LogVerbose(verbose, "Context canceled, closing WebSocket connection")
+			return
+		default:
+			_, msg, err := conn.ReadMessage()
+			if err != nil {
+				if websocket.IsCloseError(err, websocket.CloseNormalClosure) {
+					utils.LogVerbose(verbose, "WebSocket closed normally")
+				} else {
+					if strings.Contains(err.Error(), "close") {
+						utils.LogVerbose(verbose, "WebSocket connection closed")
+					} else {
+						utils.LogVerbose(verbose, "Read error: %v", err)
+					}
+				}
+				return // Exit the loop on any read error
 			}
-			break
-		}
 
-		var rpcRequest map[string]interface{}
-		err = json.Unmarshal(msg, &rpcRequest)
-		if err != nil {
-			log.Println("JSON unmarshal error:", err)
-			continue
-		}
+			var rpcRequest map[string]interface{}
+			err = json.Unmarshal(msg, &rpcRequest)
+			if err != nil {
+				utils.LogVerbose(verbose, "JSON unmarshal error: %v", err)
+				continue
+			}
 
-		if funcName, ok := rpcRequest["function"].(string); ok {
-			callRPCFunction(funcName, conn, rpcRequest["data"])
+			if funcName, ok := rpcRequest["function"].(string); ok {
+				go callRPCFunction(funcName, conn, rpcRequest["data"],verbose)
+			}
 		}
 	}
 }
-

@@ -1,4 +1,3 @@
-// Package config contains functions for loading and validating the server configuration.
 package config
 
 import (
@@ -13,6 +12,8 @@ type Config struct {
 	Path string
 	// Port is the TCP port on which the server will listen for incoming connections.
 	Port string
+	// Verbose enables verbose logging.
+	Verbose bool
 }
 
 // LoadConfig loads configuration, overriding defaults with provided config values.
@@ -25,8 +26,9 @@ type Config struct {
 // If the Port value is not a valid TCP port, an error will be returned.
 func LoadConfig(override Config) (*Config, error) {
 	cfg := Config{
-		Path: "/",    // Default path if override is empty
-		Port: "8080", // Default port if override is empty
+		Path:    "/",    // Default path if override is empty
+		Port:    "8080", // Default port if override is empty
+		Verbose: false,
 	}
 
 	if override.Path != "" {
@@ -34,22 +36,30 @@ func LoadConfig(override Config) (*Config, error) {
 	}
 
 	if override.Port != "" {
-		_, err := strconv.Atoi(override.Port)
-		if err != nil {
+		if _, err := strconv.Atoi(override.Port); err != nil {
 			return nil, fmt.Errorf("invalid port '%s': %w", override.Port, err)
 		}
+
+		// Check if the port is already in use
+		if !IsPortAvailable(override.Port) {
+			return nil, fmt.Errorf("port %s is already in use or not available", override.Port)
+		}
+
 		cfg.Port = override.Port
 	}
 
+	cfg.Verbose = override.Verbose
 	return &cfg, nil
 }
 
-// ifEmpty returns the override value if it is not empty, otherwise the default.
-func ifEmpty(override, defaultVal string) string {
-	if override != "" {
-		return override
+// IsPortAvailable checks if a given TCP port is available for listening.
+func IsPortAvailable(port string) bool {
+	listener, err := net.Listen("tcp", ":"+port)
+	if err != nil {
+		return false
 	}
-	return defaultVal
+	defer listener.Close()
+	return true
 }
 
 // IsValidPort returns whether the given string is a valid TCP port number.
@@ -58,26 +68,15 @@ func IsValidPort(port string) bool {
 	return err == nil
 }
 
-// IsListening returns whether the server is listening on the given host and port.
-func IsListening(host string, port string) bool {
-	ln, err := net.Listen("tcp", net.JoinHostPort(host, port))
-	if err != nil {
-		return false
-	}
-	ln.Close()
-	return true
-}
-
 // IsConfigValid returns whether the given configuration is valid.
 //
 // This will check that the port is a valid TCP port number, and that the
 // server is not already listening on the given host and port.
 func IsConfigValid(cfg Config) bool {
-	return IsValidPort(cfg.Port) && IsListening("", cfg.Port)
+	return IsValidPort(cfg.Port) && IsPortAvailable(cfg.Port)
 }
 
 // String returns a string representation of the configuration.
 func (c Config) String() string {
 	return fmt.Sprintf("Config(Path=%s, Port=%s)", c.Path, c.Port)
 }
-
