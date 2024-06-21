@@ -2,7 +2,6 @@ package wsconn
 
 import (
 	"errors"
-	"fmt"
 	"sync"
 
 	"github.com/gorilla/websocket"

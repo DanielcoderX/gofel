@@ -54,7 +54,7 @@ func main() {
 	}
 
 	// Send an echo message
-	sendMessage("echo", "Hello, world!", "msgpack")
+	sendMessage("echo", "Hello, world!", "json")
 	// Read response
 	_, message, err := c.ReadMessage()
 	if err != nil {
@@ -62,13 +62,15 @@ func main() {
 		return
 	}
 	log.Printf("Received echo message: %s\n", message)
-	sendMessage("hello", nil, "msgpack")
+
+	// Call hello function
+	sendMessage("hello", nil, "json")
 	// Read response
 	_, message, err = c.ReadMessage()
 	if err != nil {
 		log.Printf("read error: %s", err)
 		return
 	}
-	log.Printf("Received echo message: %s\n", message)
+	log.Printf("Received hello message: %s\n", message)
 
 }

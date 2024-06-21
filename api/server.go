@@ -6,8 +6,9 @@ import (
 
 	"github.com/DanielcoderX/gofel/internal/rpc"
 	"github.com/DanielcoderX/gofel/internal/utils"
-	"github.com/DanielcoderX/gofel/pkg/wsconn"
 	"github.com/DanielcoderX/gofel/pkg/config"
+	"github.com/DanielcoderX/gofel/pkg/wsconn"
+	"github.com/gorilla/websocket"
 )
 
 type Server struct {
@@ -26,16 +27,36 @@ func (s *Server) On(name string, callback func(*wsconn.ConnectionWrapper, interf
 	rpc.On(name, callback)
 }
 
+// SendResponse marshals the data and sends it over the WebSocket connection
+// using the appropriate message type based on the configured format.
+func SendResponse(conn *wsconn.ConnectionWrapper, data interface{}) error {
+	// Marshal the data based on the format specified in the config.
+	response, err := rpc.MarshalData(data)
+	if err != nil {
+		return err
+	}
+
+	// Determine the message type based on the config format.
+	messageType := websocket.TextMessage
+	if config.GlobalConfig.Format == "msgpack" {
+		messageType = websocket.BinaryMessage
+	}
+
+	// Send the marshaled data as a WebSocket message.
+	return conn.SendMessage(messageType, response)
+}
+
 // Start starts the server and listens for incoming connections.
 func (s *Server) Start(ctx context.Context) error {
+	// Globalize the config
+	config.GlobalConfig = s.config
 	// Initialize the global connection pool with a capacity from config
 	wsconn.InitConnectionPool(s.config.ConnectionPoolCapacity)
-
 	http.HandleFunc(s.config.Path, func(w http.ResponseWriter, r *http.Request) {
-		rpc.HandleWebSocket(ctx, w, r, s.config.Verbose, s.config.Format)
+		rpc.HandleWebSocket(ctx, w, r)
 	})
 
-	utils.LogVerbose(s.config.Verbose, "RPC starting on %s...", s.config.Port)
+	utils.LogVerbose(s.config.Verbose, "RPC starting on %s at %s", s.config.Port, s.config.Path)
 
 	s.httpServer = &http.Server{Addr: ":" + s.config.Port}
 

@@ -20,12 +20,16 @@ type Config struct {
 	ConnectionPoolCapacity int
 }
 
+// GlobalConfig holds the application's configuration.
+var GlobalConfig *Config
+
+
 // LoadConfig loads configuration, overriding defaults with provided config values.
 func LoadConfig(override Config) (*Config, error) {
 	cfg := Config{
-		Path:                   "/",    // Default path if override is empty
+		Path:                   "/ws",    // Default path if override is empty
 		Port:                   "8080", // Default port if override is empty
-		Verbose:                false,  // Default verbose if override is empty
+		Verbose:                true,  // Default verbose if override is empty
 		Format:                 "json", // Default format if override is empty
 		ConnectionPoolCapacity: 100,    // Default connection pool capacity if override is empty
 	}
@@ -39,9 +43,8 @@ func LoadConfig(override Config) (*Config, error) {
 			return nil, fmt.Errorf("invalid port '%s': %w", override.Port, err)
 		}
 
-		// Check if the port is already in use
-		if !IsPortAvailable(override.Port) {
-			return nil, fmt.Errorf("port %s is already in use or not available", override.Port)
+		if err := IsConfigValid(override); !err {
+			return nil, fmt.Errorf("invalid configuration: %+v", cfg)
 		}
 
 		cfg.Port = override.Port

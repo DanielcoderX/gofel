@@ -9,7 +9,7 @@
 - **WebSocket Integration**: Built on the reliable and high-performance Gorilla WebSocket library.
 - **Concurrent Processing**: Designed for handling multiple requests simultaneously, enhancing real-time communication efficiency.
 - **Lightweight Framework**: Focus more on your application's features and less on managing boilerplate code.
-
+- **MessagePack and JSON Support**: Support for both MessagePack and JSON data formats, allowing for efficient data transmission.
 ## Getting Started
 
 Embark on your Gofel journey with these simple steps:
@@ -20,15 +20,15 @@ Make sure you have Go installed (version 1.15 or newer). Download it from [Go Do
 
 ### Installation
 
-Incorporate Gofel into your project by adding the following import:
+Incorporate Gofel into your project by running the following command:
 
 ```go
-import "github.com/DanielcoderX/gofel"
+go get github.com/DanielcoderX/gofel
 ```
 
 ### Function Registration and Message Handling
 
-When setting up your server with Gofel, you'll typically register functions that can handle incoming JSON requests in the following format:
+When setting up your server with Gofel, you'll typically register functions that can handle incoming requests in the following format:
 
 ```json
 {
@@ -37,46 +37,22 @@ When setting up your server with Gofel, you'll typically register functions that
 }
 ```
 
-Each registered function must be capable of parsing this structure to perform the required action. Here's an example of how to register such a function:
+Each registered function must be capable of parsing the following structure to perform the required action. Here's an example of how to register such a function:
 
 ```go
-server.RegisterFunction("echo", func(conn *websocket.Conn, data interface{}) error {
-    var request struct {
-        Function string `json:"function"`
-        Data     string `json:"data"`
-    }
-
-    if err := json.Unmarshal(data.([]byte), &request); err != nil {
-        log.Printf("Error parsing request: %s", err)
-        return err
-    }
-
-    // Process the request based on 'Function' and 'Data'
-    response, err := json.Marshal(map[string]interface{}{
-        "result": "Received: " + request.Data,
-    })
+server.On("echo", func(conn *wsconn.ConnectionWrapper, data interface{}) {
+    err := api.SendResponse(conn, data)
     if err != nil {
-        log.Printf("Failed to encode response: %s", err)
-        return err
+        log.Printf("Failed to send response: %v", err)
     }
-
-    err = conn.WriteMessage(websocket.TextMessage, response)
-    if err != nil {
-        log.Printf("Failed to send message: %s", err)
-        return err
-    }
-
-    return nil
 })
 ```
 
-### Running the Server
+### Running the Server or Client
 
-To launch a basic server, create a `server.go` and populate it with the code of [server.go](examples/server/server.go). This example will guide you through setting up the server configuration, registering your custom function, and starting the server.
+To launch a basic server or Client, refer to the [examples](examples) directory for a step-by-step guide on how to set up and use the server or client.
 
-For more detailed examples, please refer to the `examples` folder:
-- [Client Example](examples/client/client.go)
-- [Server Example](examples/server/server.go)
+In the examples directory, you'll find a working setup that you can use as a reference to get started.
 
 ## Contributing
 
@@ -89,6 +65,3 @@ We warmly welcome contributions from everyone. Your suggestions, code contributi
 ## Acknowledgments
 
 - Thanks to the Gorilla WebSocket library.
-- Gratitude to all contributors and the supportive community around the Gofel project.
-
-We hope **Gofel** helps you build amazing applications. Happy coding!

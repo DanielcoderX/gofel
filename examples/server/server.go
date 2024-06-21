@@ -2,35 +2,28 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"log"
 
 	"github.com/DanielcoderX/gofel/api"
 	"github.com/DanielcoderX/gofel/pkg/config"
 	"github.com/DanielcoderX/gofel/pkg/wsconn"
-	"github.com/gorilla/websocket"
 )
 
 func main() {
 	// Define custom configuration for the server
 	// This is where you can set paths and ports differently from defaults.
 	myconfig := config.Config{
-		Path:    "/here", // Specify the path where the server should run
-		Port:    "8088",  // Specify the port on which the server will listen
-		Verbose: true,    // Enable verbose logging
-		Format:  "msgpack", // Use MSGPack as default format
-		ConnectionPoolCapacity: 100, // Default connection pool capacity
+		Path:                   "/here", // Specify the path where the server should run
+		Port:                   "8088",  // Specify the port on which the server will listen
+		Verbose:                true,    // Enable verbose logging
+		Format:                 "json",  // Use MSGPack as default format
+		ConnectionPoolCapacity: 100,     // Default connection pool capacity
 	}
-
 	// Load configuration with override values from 'myconfig'
 	// This step allows customization of server settings.
 	cfg, err := config.LoadConfig(myconfig)
 	if err != nil {
 		log.Fatalf("Failed to load configuration: %v", err)
-	}
-
-	if !config.IsConfigValid(*cfg) {
-		log.Fatalf("Invalid configuration: %+v", *cfg)
 	}
 
 	// Create a new RPC server using the specified configuration
@@ -40,25 +33,16 @@ func main() {
 	// Register 'echo' function that sends back received messages
 	// This function is a basic example of an RPC function handling messages.
 	server.On("echo", func(conn *wsconn.ConnectionWrapper, data interface{}) {
-		// Marshal the incoming data into JSON format.
-		encodedData, err := json.Marshal(data)
+		err := api.SendResponse(conn, data)
 		if err != nil {
-			log.Printf("Failed to encode data: %s", err)
-			return
-		}
-
-		// Send the JSON back to the client as a text message.
-		err = conn.SendMessage(websocket.TextMessage, encodedData)
-		if err != nil {
-			log.Printf("Failed to send message: %s", err)
-			return
+			log.Printf("Failed to send response: %v", err)
 		}
 	})
 
 	// This RPC function "hello" responds with a simple "Hello, world!"
 	// message to all clients that call it.
 	server.On("hello", func(conn *wsconn.ConnectionWrapper, data interface{}) {
-		conn.SendMessage(websocket.TextMessage, []byte("Hello, Honey <3"))
+		api.SendResponse(conn, "Hello Honey <3")
 	})
 
 	// Start the server and listen for incoming connections
