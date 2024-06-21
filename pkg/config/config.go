@@ -16,15 +16,18 @@ type Config struct {
 	Verbose bool
 	// Serialization format: "json" or "msgpack"
 	Format string
+	// ConnectionPoolCapacity is the maximum number of concurrent connections our server can handle.
+	ConnectionPoolCapacity int
 }
 
 // LoadConfig loads configuration, overriding defaults with provided config values.
 func LoadConfig(override Config) (*Config, error) {
 	cfg := Config{
-		Path:    "/",    // Default path if override is empty
-		Port:    "8080", // Default port if override is empty
-		Verbose: false,  // Default verbose if override is empty
-		Format:  "json", // Default format if override is empty
+		Path:                   "/",    // Default path if override is empty
+		Port:                   "8080", // Default port if override is empty
+		Verbose:                false,  // Default verbose if override is empty
+		Format:                 "json", // Default format if override is empty
+		ConnectionPoolCapacity: 100,    // Default connection pool capacity if override is empty
 	}
 
 	if override.Path != "" {
@@ -49,6 +52,7 @@ func LoadConfig(override Config) (*Config, error) {
 		}
 		cfg.Format = override.Format
 	}
+	cfg.ConnectionPoolCapacity = override.ConnectionPoolCapacity
 	cfg.Verbose = override.Verbose
 	return &cfg, nil
 }

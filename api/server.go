@@ -28,6 +28,9 @@ func (s *Server) On(name string, callback func(*wsconn.ConnectionWrapper, interf
 
 // Start starts the server and listens for incoming connections.
 func (s *Server) Start(ctx context.Context) error {
+	// Initialize the global connection pool with a capacity from config
+	wsconn.InitConnectionPool(s.config.ConnectionPoolCapacity)
+
 	http.HandleFunc(s.config.Path, func(w http.ResponseWriter, r *http.Request) {
 		rpc.HandleWebSocket(ctx, w, r, s.config.Verbose, s.config.Format)
 	})

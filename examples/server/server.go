@@ -18,7 +18,8 @@ func main() {
 		Path:    "/here", // Specify the path where the server should run
 		Port:    "8088",  // Specify the port on which the server will listen
 		Verbose: true,    // Enable verbose logging
-		Format:  "msgpack",
+		Format:  "msgpack", // Use MSGPack as default format
+		ConnectionPoolCapacity: 100, // Default connection pool capacity
 	}
 
 	// Load configuration with override values from 'myconfig'
