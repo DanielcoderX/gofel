@@ -1,4 +1,3 @@
-// Package rpc implements the WebSocket RPC server for gofel.
 package rpc
 
 import (
@@ -8,7 +7,9 @@ import (
 	"strings"
 
 	"github.com/DanielcoderX/gofel/internal/utils"
+	"github.com/DanielcoderX/gofel/pkg/wsconn"
 	"github.com/gorilla/websocket"
+	"github.com/vmihailenco/msgpack/v5"
 )
 
 // upgrader is the WebSocket upgrader with some custom settings.
@@ -25,7 +26,7 @@ var upgrader = websocket.Upgrader{
 // It upgrades the HTTP connection to the WebSocket protocol,
 // reads JSON-RPC requests from the client, unmarshals the requests,
 // calls the corresponding function, and sends the response back to the client.
-func HandleWebSocket(ctx context.Context, w http.ResponseWriter, r *http.Request, verbose bool) {
+func HandleWebSocket(ctx context.Context, w http.ResponseWriter, r *http.Request, verbose bool, format string) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -38,6 +39,8 @@ func HandleWebSocket(ctx context.Context, w http.ResponseWriter, r *http.Request
 	}
 	defer conn.Close()
 
+	wrappedConn := wsconn.NewConnectionWrapper(conn)
+
 	utils.LogVerbose(verbose, "WebSocket connection established")
 
 	for {
@@ -46,7 +49,7 @@ func HandleWebSocket(ctx context.Context, w http.ResponseWriter, r *http.Request
 			utils.LogVerbose(verbose, "Context canceled, closing WebSocket connection")
 			return
 		default:
-			_, msg, err := conn.ReadMessage()
+			_, msg, err := wrappedConn.ReadMessage()
 			if err != nil {
 				if websocket.IsCloseError(err, websocket.CloseNormalClosure) {
 					utils.LogVerbose(verbose, "WebSocket closed normally")
@@ -61,14 +64,18 @@ func HandleWebSocket(ctx context.Context, w http.ResponseWriter, r *http.Request
 			}
 
 			var rpcRequest map[string]interface{}
-			err = json.Unmarshal(msg, &rpcRequest)
+			if format == "msgpack" {
+				err = msgpack.Unmarshal(msg, &rpcRequest)
+			} else {
+				err = json.Unmarshal(msg, &rpcRequest)
+			}
 			if err != nil {
-				utils.LogVerbose(verbose, "JSON unmarshal error: %v", err)
+				utils.LogVerbose(verbose, "%s unmarshal error: %v", format, err)
 				continue
 			}
 
-			if funcName, ok := rpcRequest["function"].(string); ok {
-				go callRPCFunction(funcName, conn, rpcRequest["data"],verbose)
+			if funcName, ok := rpcRequest["Function"].(string); ok {
+				go callRPCFunction(funcName, wrappedConn, rpcRequest["Data"], verbose)
 			}
 		}
 	}

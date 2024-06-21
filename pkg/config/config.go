@@ -14,21 +14,17 @@ type Config struct {
 	Port string
 	// Verbose enables verbose logging.
 	Verbose bool
+	// Serialization format: "json" or "msgpack"
+	Format string
 }
 
 // LoadConfig loads configuration, overriding defaults with provided config values.
-//
-// The config parameter can be used to override default configuration values. It
-// will be merged with the default configuration, with provided values taking
-// precedence over the default values.
-//
-// If the Path or Port values are not provided, the default values will be used.
-// If the Port value is not a valid TCP port, an error will be returned.
 func LoadConfig(override Config) (*Config, error) {
 	cfg := Config{
 		Path:    "/",    // Default path if override is empty
 		Port:    "8080", // Default port if override is empty
-		Verbose: false,
+		Verbose: false,  // Default verbose if override is empty
+		Format:  "json", // Default format if override is empty
 	}
 
 	if override.Path != "" {
@@ -47,7 +43,12 @@ func LoadConfig(override Config) (*Config, error) {
 
 		cfg.Port = override.Port
 	}
-
+	if override.Format != "" {
+		if override.Format != "json" && override.Format != "msgpack" {
+			return nil, fmt.Errorf("invalid format '%s': must be 'json' or 'msgpack'", override.Format)
+		}
+		cfg.Format = override.Format
+	}
 	cfg.Verbose = override.Verbose
 	return &cfg, nil
 }

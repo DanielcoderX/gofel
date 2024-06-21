@@ -6,9 +6,8 @@ import (
 
 	"github.com/DanielcoderX/gofel/internal/rpc"
 	"github.com/DanielcoderX/gofel/internal/utils"
+	"github.com/DanielcoderX/gofel/pkg/wsconn"
 	"github.com/DanielcoderX/gofel/pkg/config"
-
-	"github.com/gorilla/websocket"
 )
 
 type Server struct {
@@ -22,14 +21,15 @@ func NewServer(cfg *config.Config) *Server {
 	}
 }
 
-func (s *Server) On(name string, callback func(*websocket.Conn, interface{})) {
+// On registers a callback function for an RPC call.
+func (s *Server) On(name string, callback func(*wsconn.ConnectionWrapper, interface{})) {
 	rpc.On(name, callback)
 }
 
 // Start starts the server and listens for incoming connections.
 func (s *Server) Start(ctx context.Context) error {
 	http.HandleFunc(s.config.Path, func(w http.ResponseWriter, r *http.Request) {
-		rpc.HandleWebSocket(ctx, w, r, s.config.Verbose)
+		rpc.HandleWebSocket(ctx, w, r, s.config.Verbose, s.config.Format)
 	})
 
 	utils.LogVerbose(s.config.Verbose, "RPC starting on %s...", s.config.Port)

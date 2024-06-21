@@ -7,6 +7,7 @@ import (
 
 	"github.com/DanielcoderX/gofel/api"
 	"github.com/DanielcoderX/gofel/pkg/config"
+	"github.com/DanielcoderX/gofel/pkg/wsconn"
 	"github.com/gorilla/websocket"
 )
 
@@ -14,9 +15,10 @@ func main() {
 	// Define custom configuration for the server
 	// This is where you can set paths and ports differently from defaults.
 	myconfig := config.Config{
-		Path: "/here", // Specify the path where the server should run
-		Port: "8088",  // Specify the port on which the server will listen
-		Verbose: true,  // Enable verbose logging
+		Path:    "/here", // Specify the path where the server should run
+		Port:    "8088",  // Specify the port on which the server will listen
+		Verbose: true,    // Enable verbose logging
+		Format:  "msgpack",
 	}
 
 	// Load configuration with override values from 'myconfig'
@@ -36,7 +38,7 @@ func main() {
 
 	// Register 'echo' function that sends back received messages
 	// This function is a basic example of an RPC function handling messages.
-	server.On("echo", func(conn *websocket.Conn, data interface{}) {
+	server.On("echo", func(conn *wsconn.ConnectionWrapper, data interface{}) {
 		// Marshal the incoming data into JSON format.
 		encodedData, err := json.Marshal(data)
 		if err != nil {
@@ -45,11 +47,17 @@ func main() {
 		}
 
 		// Send the JSON back to the client as a text message.
-		err = conn.WriteMessage(websocket.TextMessage, encodedData)
+		err = conn.SendMessage(websocket.TextMessage, encodedData)
 		if err != nil {
 			log.Printf("Failed to send message: %s", err)
 			return
 		}
+	})
+
+	// This RPC function "hello" responds with a simple "Hello, world!"
+	// message to all clients that call it.
+	server.On("hello", func(conn *wsconn.ConnectionWrapper, data interface{}) {
+		conn.SendMessage(websocket.TextMessage, []byte("Hello, Honey <3"))
 	})
 
 	// Start the server and listen for incoming connections

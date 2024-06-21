@@ -2,10 +2,10 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 
 	"github.com/gorilla/websocket"
+	"github.com/vmihailenco/msgpack/v5"
 )
 
 // Message is a JSON-serializable structure that represents
@@ -31,17 +31,21 @@ func main() {
 	defer close(done)
 
 	// Define a function to send messages to the server
-	sendMessage := func(funcName string, data interface{}) {
+	sendMessage := func(funcName string, data interface{}, format string) {
 		msg := Message{
 			Function: funcName,
 			Data:     data,
 		}
-		msgBytes, err := json.Marshal(msg)
+		var msgBytes []byte
+		if format == "msgpack" {
+			msgBytes, err = msgpack.Marshal(msg)
+		} else {
+			msgBytes, err = json.Marshal(msg)
+		}
 		if err != nil {
 			log.Printf("Error marshalling message for %s: %s", funcName, err)
 			return
 		}
-
 		err = c.WriteMessage(websocket.TextMessage, msgBytes)
 		if err != nil {
 			log.Printf("Failed to send message for %s: %s", funcName, err)
@@ -50,14 +54,21 @@ func main() {
 	}
 
 	// Send an echo message
-	sendMessage("echo", "Hello, world!")
-
-	// Read response (non-blocking read with timeout)
+	sendMessage("echo", "Hello, world!", "msgpack")
+	// Read response
 	_, message, err := c.ReadMessage()
 	if err != nil {
 		log.Printf("read error: %s", err)
 		return
 	}
-	// Convert message byte slice to string before printing
-	fmt.Printf("Received echo message: %s\n", string(message))
+	log.Printf("Received echo message: %s\n", message)
+	sendMessage("hello", nil, "msgpack")
+	// Read response
+	_, message, err = c.ReadMessage()
+	if err != nil {
+		log.Printf("read error: %s", err)
+		return
+	}
+	log.Printf("Received echo message: %s\n", message)
+
 }
